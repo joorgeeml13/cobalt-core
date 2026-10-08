@@ -1,0 +1,8 @@
+.git
+.agent
+docs
+node_modules
+web/node_modules
+web/dist
+bin
+*.log
