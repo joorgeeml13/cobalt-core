@@ -1,3 +1,4 @@
+# Production Compose for Cobalt Core (Images pulled from registries)
 services:
   postgres:
     image: pgvector/pgvector:pg16
@@ -28,9 +29,7 @@ services:
       - matter_data:/data
 
   cobalt:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: ghcr.io/joorgeeml13/cobalt-core:latest
     container_name: cobalt-core
     restart: unless-stopped
     depends_on:

@@ -1,0 +1,55 @@
+# Development Compose for Cobalt Core (Builds locally from Dockerfile)
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: cobalt-postgres-dev
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: cobalt
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata_dev:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d cobalt"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  matter-server:
+    image: ghcr.io/home-assistant-libs/python-matter-server:stable
+    container_name: cobalt-matter-server-dev
+    restart: unless-stopped
+    security_opt:
+      - apparmor:unconfined
+    network_mode: host
+    volumes:
+      - matter_data_dev:/data
+
+  cobalt:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    image: cobalt-core:dev
+    container_name: cobalt-core-dev
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PORT: 8080
+      MQTT_PORT: 1883
+      DATABASE_URL: postgres://postgres:password@postgres:5432/cobalt?sslmode=disable
+      MATTER_SERVER_URL: ws://host.docker.internal:5580/ws
+    ports:
+      - "8080:8080"
+      - "1883:1883"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+volumes:
+  pgdata_dev:
+  matter_data_dev:
