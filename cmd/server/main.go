@@ -11,6 +11,8 @@ import (
 	"time"
 
 	"github.com/joorgeeml13/cobalt-core/internal/database"
+	"github.com/joorgeeml13/cobalt-core/internal/domain"
+	"github.com/joorgeeml13/cobalt-core/internal/drivers"
 	"github.com/joorgeeml13/cobalt-core/internal/matter"
 	"github.com/joorgeeml13/cobalt-core/internal/mqtt"
 	"github.com/joorgeeml13/cobalt-core/internal/repository"
@@ -67,7 +69,20 @@ func main() {
 	matterClient := matter.NewClient(matterURL, deviceRepo)
 	go matterClient.Start(ctx)
 
-	// 5. Servidor HTTP
+	// 5. Inicializar Registry central de Drivers políglotas
+	driverRegistry := drivers.NewRegistry(deviceRepo)
+	driverRegistry.RegisterDriverFactory(domain.ProtocolMQTT, func(d *domain.Device) (drivers.DeviceDriver, error) {
+		return drivers.NewMQTTDriver(d, mqttBroker), nil
+	})
+	driverRegistry.RegisterDriverFactory(domain.ProtocolMatter, func(d *domain.Device) (drivers.DeviceDriver, error) {
+		return drivers.NewMatterDriver(d, matterClient), nil
+	})
+	driverRegistry.RegisterDriverFactory(domain.ProtocolHTTP, func(d *domain.Device) (drivers.DeviceDriver, error) {
+		return drivers.NewHTTPDriver(d), nil
+	})
+	log.Println("Driver Registry inicializado con soporte para MQTT, Matter y HTTP")
+
+	// 6. Servidor HTTP
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
@@ -91,7 +106,7 @@ func main() {
 		}
 	}()
 
-	// 6. Esperar señal de apagado (SIGINT/SIGTERM)
+	// 7. Esperar señal de apagado (SIGINT/SIGTERM)
 	<-ctx.Done()
 	log.Println("Señal de apagado recibida, cerrando servicios...")
 
