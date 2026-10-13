@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/joorgeeml13/cobalt-core/internal/database"
+	"github.com/joorgeeml13/cobalt-core/internal/matter"
 	"github.com/joorgeeml13/cobalt-core/internal/mqtt"
 	"github.com/joorgeeml13/cobalt-core/internal/repository"
 )
@@ -27,6 +28,11 @@ func main() {
 	mqttPort := os.Getenv("MQTT_PORT")
 	if mqttPort == "" {
 		mqttPort = "1883"
+	}
+
+	matterURL := os.Getenv("MATTER_SERVER_URL")
+	if matterURL == "" {
+		matterURL = "ws://localhost:5580/ws"
 	}
 
 	dbURL := os.Getenv("DATABASE_URL")
@@ -57,7 +63,11 @@ func main() {
 		}
 	}()
 
-	// 4. Servidor HTTP
+	// 4. Inicializar y arrancar cliente WebSocket de Matter
+	matterClient := matter.NewClient(matterURL, deviceRepo)
+	go matterClient.Start(ctx)
+
+	// 5. Servidor HTTP
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
@@ -81,7 +91,7 @@ func main() {
 		}
 	}()
 
-	// 5. Esperar señal de apagado (SIGINT/SIGTERM)
+	// 6. Esperar señal de apagado (SIGINT/SIGTERM)
 	<-ctx.Done()
 	log.Println("Señal de apagado recibida, cerrando servicios...")
 
@@ -90,6 +100,11 @@ func main() {
 	defer shutdownCancel()
 	if err := srv.Shutdown(shutdownCtx); err != nil {
 		log.Printf("Error en graceful shutdown HTTP: %v", err)
+	}
+
+	// Detener cliente Matter
+	if err := matterClient.Close(); err != nil {
+		log.Printf("Error cerrando cliente Matter: %v", err)
 	}
 
 	// Detener broker MQTT
