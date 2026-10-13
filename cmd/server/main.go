@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/joorgeeml13/cobalt-core/internal/api"
 	"github.com/joorgeeml13/cobalt-core/internal/database"
 	"github.com/joorgeeml13/cobalt-core/internal/domain"
 	"github.com/joorgeeml13/cobalt-core/internal/drivers"
@@ -82,18 +83,18 @@ func main() {
 	})
 	log.Println("Driver Registry inicializado con soporte para MQTT, Matter y HTTP")
 
-	// 6. Servidor HTTP
-	mux := http.NewServeMux()
-
-	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`{"status":"ok"}`))
+	// 6. Configurar router Chi con endpoints REST y CORS
+	router := api.NewRouter(api.RouterConfig{
+		DBPool:       pool,
+		DeviceRepo:   deviceRepo,
+		Registry:     driverRegistry,
+		MQTTBroker:   mqttBroker,
+		MatterClient: matterClient,
 	})
 
 	srv := &http.Server{
 		Addr:         fmt.Sprintf(":%s", port),
-		Handler:      mux,
+		Handler:      router,
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 10 * time.Second,
 		IdleTimeout:  60 * time.Second,

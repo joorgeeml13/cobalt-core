@@ -2,6 +2,7 @@ package domain
 
 import (
 	"encoding/json"
+	"fmt"
 	"time"
 )
 
@@ -19,6 +20,11 @@ const (
 	TypeSensor DeviceType = "sensor"
 	TypeLight  DeviceType = "light"
 	TypeTV     DeviceType = "tv"
+)
+
+// Errores estándar de dominio
+var (
+	ErrNotFound = fmt.Errorf("elemento no encontrado")
 )
 
 // Device es la entidad central del dominio Cobalt. Representa cualquier dispositivo

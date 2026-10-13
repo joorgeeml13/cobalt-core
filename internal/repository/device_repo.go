@@ -35,6 +35,12 @@ type DeviceRepository interface {
 
 	// ListByProtocol devuelve los dispositivos que usan el protocolo indicado.
 	ListByProtocol(ctx context.Context, protocol domain.Protocol) ([]domain.Device, error)
+
+	// Delete elimina el dispositivo con el ID indicado.
+	Delete(ctx context.Context, id string) error
+
+	// Update actualiza nombre, tipo o metadatos de un dispositivo.
+	Update(ctx context.Context, d *domain.Device) error
 }
 
 // pgDeviceRepository es la implementación de DeviceRepository respaldada por PostgreSQL
@@ -138,6 +144,39 @@ func (r *pgDeviceRepository) ListByProtocol(ctx context.Context, protocol domain
 	defer rows.Close()
 
 	return collectDevices(rows)
+}
+
+func (r *pgDeviceRepository) Delete(ctx context.Context, id string) error {
+	const query = `DELETE FROM devices WHERE id = $1`
+
+	tag, err := r.pool.Exec(ctx, query, id)
+	if err != nil {
+		return fmt.Errorf("eliminar dispositivo %s: %w", id, err)
+	}
+	if tag.RowsAffected() == 0 {
+		return fmt.Errorf("dispositivo %s no encontrado", id)
+	}
+	return nil
+}
+
+func (r *pgDeviceRepository) Update(ctx context.Context, d *domain.Device) error {
+	const query = `
+		UPDATE devices
+		SET name = $1, type = $2, meta = $3, online = $4
+		WHERE id = $5
+		RETURNING updated_at`
+
+	row := r.pool.QueryRow(ctx, query,
+		d.Name,
+		string(d.Type),
+		[]byte(d.Meta),
+		d.Online,
+		d.ID,
+	)
+	if err := row.Scan(&d.UpdatedAt); err != nil {
+		return fmt.Errorf("actualizar dispositivo %s: %w", d.ID, err)
+	}
+	return nil
 }
 
 // scanDevice lee un único dispositivo desde una pgx.Row.
