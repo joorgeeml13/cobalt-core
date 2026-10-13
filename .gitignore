@@ -1,0 +1,22 @@
+# Binarios compilados
+cobalt
+cobalt-core
+
+# Módulos de Go
+vendor/
+
+# Variables de entorno (contiene credenciales)
+.env
+
+# Artefactos de test
+*.test
+*.out
+coverage.html
+coverage.out
+
+# Assets del frontend compilados (se generan en el build)
+web/dist/
+
+# Archivos de sistema
+.DS_Store
+Thumbs.db

@@ -22,7 +22,7 @@ RUN if [ -f package.json ]; then \
 # ------------------------------------------------------------------------------
 # Stage 2: Backend Builder (Go Monolith)
 # ------------------------------------------------------------------------------
-FROM golang:1.23-alpine AS go-builder
+FROM golang:1.22-alpine AS go-builder
 WORKDIR /app
 
 RUN apk add --no-cache ca-certificates tzdata git

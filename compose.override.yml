@@ -1,0 +1,31 @@
+# ==============================================================================
+# Development Override for Cobalt Core
+# ==============================================================================
+# Docker Compose combina automáticamente compose.yml + compose.override.yml
+# cuando ejecutas `docker compose up` en local sin especificar flags -f adicionales.
+#
+# Sobrescribe la imagen de producción con el build local desde el Dockerfile
+# y asigna nombres/volúmenes específicos de desarrollo si es necesario.
+
+services:
+  postgres:
+    container_name: cobalt-postgres-dev
+    volumes:
+      - pgdata_dev:/var/lib/postgresql/data
+
+  matter-server:
+    container_name: cobalt-matter-server-dev
+    volumes:
+      - matter_data_dev:/data
+
+  cobalt:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    image: cobalt-core:dev
+    container_name: cobalt-core-dev
+
+volumes:
+  pgdata_dev:
+  matter_data_dev:
